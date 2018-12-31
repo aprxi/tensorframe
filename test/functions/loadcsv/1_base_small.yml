@@ -1,0 +1,19 @@
+---
+defaults:
+  include:
+    - defaults/datatypes.yml
+  columns_no: 4
+  rows_no: 10
+
+tests:
+  - name: mixed
+    columns:
+      - datatype: int32
+        columns_no: 1
+      - datatype: float32
+        columns_no: 2
+      - datatype: int64
+        columns_no: 2
+      - datatype: uint32
+        columns_no: 2
+...

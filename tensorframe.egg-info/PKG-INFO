@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: tensorframe
+Version: 0.40.0
+Summary: Post alpha build
+Home-page: https://tensorframe.ai
+Author: Anthony Potappel
+Author-email: anthony.potappel@gmail.com
+License: UNKNOWN
+Description: Post alpha build
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: POSIX :: LINUX
+Description-Content-Type: text/markdown
