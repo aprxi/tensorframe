@@ -167,7 +167,7 @@ function p__disable_nouveau(){
 
     echo -e "blacklist nouveau\noptions nouveau modeset=0" |sudo tee /etc/modprobe.d/blacklist-nouveau.conf
 
-    sudo update-initramfs -u; [[ ! "$?" -eq 0 ]] || return 1
+    sudo update-initramfs -u; [[ ! "$?" -eq 0 ]] && return 1
 
     # Reboot automatically in unattended mode
     if [[ "$1" == "unattended" ]];then
