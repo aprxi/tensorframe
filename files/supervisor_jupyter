@@ -1,0 +1,15 @@
+[program:jupyter]
+command=jupyter notebook --ip 0.0.0.0 --no-browser --allow-root 
+process_name=jupyter
+numprocs=1
+directory=/home/tensorframe/notebooks
+autostart=true
+autorestart=true
+startsecs=5
+startretries=10
+user=tensorframe
+redirect_stderr=false
+stdout_logfile=/var/log/jupyter/jupyter.log
+stdout_capture_maxbytes=32MB
+stderr_logfile=/var/log/jupyter/jupyter.error.log
+stderr_capture_maxbytes=32MB

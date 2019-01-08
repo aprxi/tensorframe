@@ -1,0 +1,15 @@
+version: '2.3'
+
+services:
+  tfclient:
+    runtime: "${DOCKER_RUNTIME}"
+    container_name: tfclient
+    hostname: tfclient
+    ports:
+    - '8888:8888'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+        - DOCKER_RUNTIME
+    command: ["sh", "/bin/entrypoint.sh"]
