@@ -2,7 +2,7 @@ FROM nvidia/cuda
 
 RUN apt-get update --fix-missing
 
-RUN apt-get -y install python3-pip
+RUN apt-get -y install python3-pip python3-nose python3-yaml
 RUN python3 -m pip install numpy pandas pyarrow
 RUN python3 -m pip install jupyter
 

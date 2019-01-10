@@ -14,6 +14,7 @@ _exec(){
 build_cpplibs(){
 #  _exec "make -C ./cpp libtensor"
 #  _exec "make -C ./cpp libparser"
+  git submodule update --recursive
   _exec "make -C ./cpp libio"
   _exec "make -C ./cpp libbinops"
   _exec "cp cpp/build/*.so tensorframe/core/libs/"

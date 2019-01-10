@@ -15,7 +15,7 @@ NUMPY_INCLUDE=`python3 -c "import numpy;print(numpy.get_include())"`
 PYTHON_INCLUDE="/usr/include/python3.6"
 PYTHON_LIB="/usr/lib/python3.6"
 INC = -I$(TF_INCLUDE) -I$(NUMPY_INCLUDE) -I$(PYTHON_INCLUDE)
-INC_CU = -I$(TF_INCLUDE) -I$(CUDA_HOME)/include -I/home/anthonyp/test/cub-1.8.0
+INC_CU = -I$(TF_INCLUDE) -I$(CUDA_HOME)/include -I./../externals/cub
 CUDA_LIBS = -L$(CUDA_HOME)/targets/x86_64-linux/lib -lcudart -lcublas -lcurand
 
 
