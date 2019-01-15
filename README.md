@@ -10,6 +10,9 @@ As exciting as CSV files are. You might have noticed the name of the project sug
 
 ### Status
 
+#### 20190115
+Added buildscripts to create Dockerbased builds for user and developer mode. This should have been topic no. 0. Took more time than expected. Fortunately it has been worth it. Installing and testing on new systems is now fully automated. More importantly, having this containerized makes it highly portable to cloud stacks and new system builds.
+
 #### 20181231
 First part is published. Starting with an "alpha-build" of the CSV parser. Its already over a magnitude faster than traditional CPU counterparts (and a few times better than a current GPU algorithm). But do note, Current version should still be considered alpha-build status. 
 
