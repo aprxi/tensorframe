@@ -1,0 +1,6 @@
+build/
+tensorframe.egg-info/
+dist/
+__pycache__
+*.swp
+*.so

@@ -2,9 +2,6 @@
 #
 CUDA_HOME="/usr/local/cuda-10.0"
 
-#Use ‘nvcc –Xptxas –v a.cu’ to get register and shared memory usage.
-
-
 CC = g++ -std=c++11
 NVCC = $(CUDA_HOME)/bin/nvcc
 CC_FLAGS += -O3 -fPIC -Wall -Wfatal-errors -D_FORCE_INLINES -rdynamic

@@ -12,7 +12,7 @@
 DRIVER_VERSION="410.78"
 DOCKER_COMPOSE_VERSION="1.21.1"
 
-PROGNAME="nvdock_configure.sh"
+PROGNAME="configure_nvdock.sh"
 
 function usage(){
     cat << USAGE
@@ -97,7 +97,7 @@ function filter_input_argstr(){
     arglist=""
     for arg in "$@";do
         arg_p=$(echo "$arg" \
-            |sed 's/\(.*\)/\L\1/g;s/[^-a-z0-9=\.,]//g;s/,,*/,/g;s/^,\|,$//g;s/,/\ /g')
+            |sed 's/\(.*\)/\L\1/g;s/[^-a-z0-9=\.,\ ]//g;s/,,*/,/g;s/^,\|,$//g;s/,/\ /g')
         arglist="${arglist} ${arg_p}"
     done
     echo "${arglist}" |sed 's/^\ //g'
@@ -116,7 +116,7 @@ function p__ubuntu(){
         apt-transport-https \
         ca-certificates \
         software-properties-common \
-        curl \
+        curl jq \
     && sudo apt-get update
     check_fail_msg "$?" "$message" "" || return 1
 
@@ -152,6 +152,11 @@ function p__driver_check(){
     else
         # module check only
         echo -n "Check if NVIDIA driver is loaded: "
+        check_module "nvidia" 1 && return 0
+    
+        # module might not be loaded first time. Load and recheck.
+        sudo modprobe nvidia || return 1
+        echo -n "Re-check if NVIDIA driver is loaded: "
         check_module "nvidia" 1 || return 1
     fi
 
@@ -345,12 +350,17 @@ function p__check_runtime(){
 
 
 function p__help(){
-    #fqfn="$1"
     usage
+    return 0
 }
 
 
-function check_distro(){
+function p__help_exit(){
+    p__help
+    exit 1
+}
+
+function p__check_distro(){
     echo -n "OS distribution supported: "
     release=$(lsb_release -cs 2>/dev/null || echo "")
     if [[ -z "$release" ]];then
@@ -375,8 +385,7 @@ function check_distro(){
     return 0
 }
 
-
-check_distro || exit 1
+p__check_distro || p__help_exit
 
 INPUT="$1"
 case "$INPUT" in
@@ -444,8 +453,9 @@ case "$INPUT" in
             parts=$(filter_input_argstr "$@")
             for part in ${parts[@]};do
                 case "$part" in
-                    driver-check)   p__driver_check;;
-                    driver-check=[0-9]*)   p__driver_check "${part##*=}";;
+                    docker) docker_service_check;;
+                    driver) p__driver_check;;
+                    driver=[0-9]*)   p__driver_check "${part##*=}";;
                     runtime)    p__check_runtime;;
                     *)  echo "CHECK unknown: $part"; exit 1;;
                 esac
@@ -457,7 +467,9 @@ case "$INPUT" in
             done
             exit 0
             ;;
-        *)
-            p__help "$(realpath $0)"
-            ;;
+        --help) p__help && exit 0;;
+        *)  p__help && exit 1;;
 esac
+
+# unexpected exit
+exit 1

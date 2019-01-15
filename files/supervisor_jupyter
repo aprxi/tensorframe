@@ -1,13 +1,15 @@
+[unix_http_server]
+file=/var/run/supervisord.sock
 [program:jupyter]
 command=jupyter notebook --ip 0.0.0.0 --no-browser --allow-root 
 process_name=jupyter
 numprocs=1
-directory=/home/tensorframe/notebooks
+directory=/service/tfclient/notebooks
 autostart=true
 autorestart=true
+user={{ HOST_USER }}
 startsecs=5
 startretries=10
-user=tensorframe
 redirect_stderr=false
 stdout_logfile=/var/log/jupyter/jupyter.log
 stdout_capture_maxbytes=32MB
