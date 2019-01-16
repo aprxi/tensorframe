@@ -94,7 +94,7 @@ function docker_profile__developer(){
     outputfile="$1"
 
     cat >>"$outputfile" << PROFILE
-    RUN apt-get -y install sudo git vim
+    RUN apt-get -y install sudo git vim unzip
     RUN umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER}
 PROFILE
     return $?

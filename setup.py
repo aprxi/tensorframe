@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="tensorframe",
-    version="0.40.0",
+    version="0.80.0",
     author="Anthony Potappel",
     author_email="anthony.potappel@gmail.com",
     description="Post alpha build",
@@ -13,6 +13,8 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://tensorframe.ai",
     packages=setuptools.find_packages(),
+    package_data={'tensorframe': ['core/libs/*.so']},
+    zip_safe=False,
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
