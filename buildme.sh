@@ -22,7 +22,6 @@ build_cpplibs(){
 
 build_tensorframe(){
   _exec "python3 setup.py sdist bdist_wheel"
-  _exec "sudo python3 setup.py install"
 }
 
 if [ -z "$1" ];then

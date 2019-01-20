@@ -68,7 +68,7 @@ function _err_help(){
 
 
 function create_compose_minimal(){
-    [[ -z "$1" ]] && _err "create_compose_minimal(): invalid argument (1)"
+    [[ -z "$1" ]] && _err "create_compose_minimal(): empty argument (1)"
 
     composefile="$1"
 
@@ -89,34 +89,48 @@ COMPOSE
 
 
 function docker_profile__developer(){
-    [[ -z "$1" ]] && _err "docker_profile__developer(): invalid argument (2)"
+    [[ -z "$1" ]] && _err "docker_profile__developer(): empty argument (2)"
 
     outputfile="$1"
 
     cat >>"$outputfile" << PROFILE
-    RUN apt-get -y install sudo git vim unzip
-    RUN umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER}
+
+FROM scratch as developer-latest
+
+ENV CUDA_VERSION 10.0.130
+ENV CUDA_PKG_VERSION 10-0=\$CUDA_VERSION-1
+
+COPY --from=user-latest . .
+
+RUN apt-get update --fix-missing \\
+    && apt-get -y install \\
+        build-essential \\
+        cuda-minimal-build-\$CUDA_PKG_VERSION \\
+        cuda-cublas-dev-\$CUDA_PKG_VERSION \\
+        cuda-curand-dev-\$CUDA_PKG_VERSION \\
+        python3-pip \\
+        git \\
+        sudo \\
+        vim 
+
+RUN umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER}
+RUN python3 -m pip install nose && ln -sf nosetests /usr/local/bin/nosetests3
 PROFILE
     return $?
 }
 
 
 function docker_profile__user(){
-    [[ -z "$1" ]] && _err "docker_profile__user(): invalid argument (1)"
-    [[ -z "$2" ]] && _err "docker_profile__user(): invalid argument (2)"
-    [[ -z "$3" ]] && _err "docker_profile__user(): invalid argument (3)"
+    [[ -z "$1" ]] && _err "docker_profile__user(): empty argument (1)"
+    [[ -z "$2" ]] && _err "docker_profile__user(): empty argument (2)"
 
     inputfile="$1"
     outputfile="$2"
-    profile_tag="$3"
+
+    [[ ! -s "$inputfile" ]] && _err "docker_profile__user(): inputfile empty or does not exist: ${inputfile}"
     
     cat "$inputfile" >"$outputfile"
     cat >>"$outputfile" << PROFILE
-FROM nvidia/cuda as ${profile_tag}
-COPY --from=base . .
-
-RUN apt-get -y install supervisor
-
 RUN useradd -d /service/tfclient -u ${HOST_UID} -U -s /usr/sbin/nologin ${HOST_USER}
 COPY files/entrypoint.sh /bin/entrypoint.sh
 RUN chmod +x /bin/entrypoint.sh
@@ -129,31 +143,23 @@ PROFILE
 }
 
 
-function create_compose_local(){
-    [[ -z "$1" ]] && _err "create_compose_local(): invalid argument (1)"
-
+function create_dockerfile_local(){
+    [[ -z "$1" ]] && _err "create_dockerfile_local(): empty argument (1)"
+    [[ -z "$2" ]] && _err "create_dockerfile_local(): empty argument (2)"
+    
     profile_tag="$1"
-    
-    cd "$PROJECT_ROOT" || _err "Cant cd into: ${PROJECT_ROOT}"
-    
-    [[ -s "$PROJECT_ROOT/.git/config" ]] || _err "Expected a GIT directory: ${PROJECT_ROOT}"
-    
-    builddir="$PROJECT_ROOT/build"
-    if [[ ! -d "$builddir" ]];then
-        mkdir -p "$builddir" || _err "p__generate_docker(): failed to create builddir: ${builddir}"
-    fi
+    builddir="$2"
 
-    datadir="$HOME/.tensorframe"
-    if [[ ! -d "$datadir" ]];then
-        mkdir -p "$datadir" || _err "p__generate_docker(): failed to create datadir: ${datadir}"
-    fi
-    
-    dockerfile="${PROJECT_ROOT}/Dockerfile.base"
+    cd "$PROJECT_ROOT" || _err "Cant cd into: ${PROJECT_ROOT}"
+
+    [[ ! -d "$builddir" ]] && _err "create_dockerfile_local(): builddir does not exist: ${builddir}"
+
+    dockerfile="${PROJECT_ROOT}/Dockerfile"
     dockerfile_target="${builddir}/Dockerfile.${profile_tag}"
-    
+
     case "$profile_tag" in
         user)
-            docker_profile__user "$dockerfile" "$dockerfile_target" "$profile_tag"
+            docker_profile__user "$dockerfile" "$dockerfile_target"
             ;;
         developer)
             docker_profile__user "$dockerfile" "${dockerfile_target}.tmp" "$profile_tag"
@@ -162,17 +168,37 @@ function create_compose_local(){
         *)  _err "create_compose_local(): invalid profile: ${profile_tag}"
             ;;
     esac
+}
 
+
+function create_compose_local(){
+    [[ -z "$1" ]] && _err "create_compose_local(): empty argument (1)"
+    [[ -z "$2" ]] && _err "create_compose_local(): empty argument (2)"
+
+    profile_tag="$1"
+    builddir="$2"
+    
+    cd "$PROJECT_ROOT" || _err "Cant cd into: ${PROJECT_ROOT}"
+    
+    [[ ! -d "$builddir" ]] && _err "create_compose_local(): builddir does not exist: ${builddir}"
+    
+    [[ -s "$PROJECT_ROOT/.git/config" ]] || _err "Expected a GIT directory: ${PROJECT_ROOT}"
+    
     composefile="${builddir}/docker-compose.${profile_tag}.json"
     create_compose_minimal "$composefile" || _err "p__generate_docker(): cant create composefile: ${composefile}"
+    
+    datadir="$HOME/.tensorframe"
+    if [[ ! -d "$datadir" ]];then
+        mkdir -p "$datadir" || _err "p__generate_docker(): failed to create datadir: ${datadir}"
+    fi
 
     python3 -c 'import sys, json; json.dump(json.load(sys.stdin), sys.stdout, indent=4)' < "$composefile" \
         |jq '
             .services.tfclient.user = "'"$HOST_UID:$HOST_GID"'" |
-            .services.tfclient.image = "'"${HOST_USER}"'/tensorframe_tfclient:'"$profile_tag"'" |
+            .services.tfclient.image = "'"${HOST_USER}"'/tensorframe_tfclient:'"$profile_tag"'-latest" |
             .services.tfclient.build.dockerfile = "build/Dockerfile.'$profile_tag'" |
             .services.tfclient.build.context = "../" |
-            .services.tfclient.build.target = "'$profile_tag'" |
+            .services.tfclient.build.target = "'$profile_tag'-latest" |
             .services.tfclient.environment[.services.tfclient.environment| length] |= . + "DEVELOPER_MODE=1" |
             .services.tfclient.volumes = [{"type": "bind", "source": "'"$datadir"'", "target": "/service/tfclient"}] |
             .services.tfclient.ports = ["8888:8888"]
@@ -207,7 +233,7 @@ function create_compose_local(){
 
 
 function p__build_container(){
-    [[ -z "$1" ]] && _err "p__build_container(): argument required [1]"
+    [[ -z "$1" ]] && _err "p__build_container(): empty argument (1)"
 
     profile_tag="$1"
 
@@ -249,38 +275,36 @@ function p__build_container(){
 
 
 function p__generate_docker(){
-    [[ -z "$1" ]] && _err "p__generate_docker(): argument required [1]"
+    [[ -z "$1" ]] && _err "p__generate_docker(): empty argument (1)"
 
     profile_tag="$1"
-    create_compose_local "$profile_tag"
+    
+    builddir="$PROJECT_ROOT/build"
+    if [[ ! -d "$builddir" ]];then
+        mkdir -p "$builddir" || _err "p__generate_docker(): failed to create builddir: ${builddir}"
+    fi
+
+    create_dockerfile_local "$profile_tag" "$builddir"
+    create_compose_local "$profile_tag" "$builddir"
     return 0
 }
-
-
-# TODO:
-# add Dockerfile code for "user"
-# add Dockerfile code for "developer", packages etc.
-# dev git submodule update --init --recursive
-
 
 [[ -z "$1" ]] && _err_help "argument required: [COMMAND] [MODE]"
 [[ -z "$2" ]] && _err_help "argument required: [MODE]"
 
 COMMAND="$1"
 MODE="$2"
+DOCKER_RUNTIME=""
 
 # verify mode input before continuing
 case "$MODE" in
-    user|developer) ;;
+    user|developer)
+        (exec bash "${PROJECT_ROOT}/scripts/prepare_nvdock.sh" --check driver,runtime)
+        [[ "$?" -eq 0 ]] && DOCKER_RUNTIME="nvidia"
+        ;;
     *)  _err_help "invalid argument for [MODE]: ${MODE}"
 esac
 
-(exec bash "${PROJECT_ROOT}/scripts/prepare_nvdock.sh" --check driver,runtime)
-if [[ "$?" -eq 0 ]];then
-    DOCKER_RUNTIME="nvidia"
-else
-    DOCKER_RUNTIME=""
-fi
 
 case "$COMMAND" in
     --build)

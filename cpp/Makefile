@@ -13,7 +13,7 @@ PYTHON_INCLUDE="/usr/include/python3.6"
 PYTHON_LIB="/usr/lib/python3.6"
 INC = -I$(TF_INCLUDE) -I$(NUMPY_INCLUDE) -I$(PYTHON_INCLUDE)
 INC_CU = -I$(TF_INCLUDE) -I$(CUDA_HOME)/include -I./../externals/cub
-CUDA_LIBS = -L$(CUDA_HOME)/targets/x86_64-linux/lib -lcudart -lcublas -lcurand
+CUDA_LIBS = -L$(CUDA_HOME)/lib64 -lcudart -lcublas -lcurand
 
 
 # File names

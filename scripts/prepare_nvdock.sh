@@ -342,7 +342,7 @@ function p__docker_restart(){
 function p__check_runtime(){
     message="Testing CUDA runtime"
     echo "$message ..."
-    run_as_docker docker run --runtime=nvidia --rm nvidia/cuda nvidia-smi
+    run_as_docker docker run --runtime=nvidia --rm nvidia/cuda:10.0-base nvidia-smi
     check_fail_msg "$?" "$message" "" || return 1
     echo "${message}: [OK]"
     return 0
