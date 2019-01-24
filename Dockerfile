@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-base as user-latest
+FROM nvidia/cuda:10.0-base as base
 LABEL maintainer "TENSORFRAME.AI <anthony.potappel@gmail.com>"
 
 RUN apt-get update --fix-missing \
@@ -17,3 +17,8 @@ RUN apt-get -y install python3-pip \
     && apt-get -y remove python3-pip \
     && rm -rf /var/lib/apt/lists/* \ 
     && apt-get -y autoremove --purge && apt-get clean
+
+COPY files/entrypoint.sh /bin/entrypoint.sh
+COPY files/supervisor_jupyter /etc/supervisor/conf.d/jupyter.conf
+RUN chmod +x /bin/entrypoint.sh \
+    && mkdir -p /service /etc/supervisor/conf.d /var/run/supervisor

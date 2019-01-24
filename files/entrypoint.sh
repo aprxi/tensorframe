@@ -1,18 +1,20 @@
 #!/bin/sh
 
-# supervisor keeps Jupyter notebook running
-jupyter_home="/service/tfclient/.jupyter"
+# Use supervisor to keeps Jupyter notebook running.
+# This will automatically reset notebook when a user hits Quit.
+
+jupyter_home="${HOME}/.jupyter"
+
 if [ ! -d "$jupyter_home" ];then
     mkdir -p "$jupyter_home"
 fi
 if [ ! -s "$jupyter_home/jupyter_notebook_config.py" ];then
     echo "c.NotebookApp.token = u''" >"$jupyter_home/jupyter_notebook_config.py"
 fi
-if [ ! -d "/service/tfclient/notebooks" ];then
-    mkdir -p "/service/tfclient/notebooks"
+if [ ! -d "${HOME}/notebooks" ];then
+    mkdir -p "${HOME}/notebooks"
 fi
 
 service supervisor start
 
-# keep running as a service
-/bin/bash -c "trap : TERM INT; sleep infinity & wait"
+exit 0

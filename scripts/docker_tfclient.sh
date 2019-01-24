@@ -16,6 +16,7 @@ PROJECT_ROOT="$(dirname $(dirname $(realpath -s $0)))"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 HOST_USER=$(id -un)
+HOST_GROUP=$(id -gn)
 DOCKER_RUNTIME=
 
 function usage(){
@@ -94,14 +95,10 @@ function docker_profile__developer(){
     outputfile="$1"
 
     cat >>"$outputfile" << PROFILE
-
 FROM scratch as developer-latest
-
 ENV CUDA_VERSION 10.0.130
 ENV CUDA_PKG_VERSION 10-0=\$CUDA_VERSION-1
-
 COPY --from=user-latest . .
-
 RUN apt-get update --fix-missing \\
     && apt-get -y install \\
         build-essential \\
@@ -112,9 +109,9 @@ RUN apt-get update --fix-missing \\
         git \\
         sudo \\
         vim 
-
-RUN umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER}
-RUN python3 -m pip install nose && ln -sf nosetests /usr/local/bin/nosetests3
+RUN chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/. /service/${HOST_USER}/. \\
+    && umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER} \\
+    && python3 -m pip install nose && ln -sf nosetests /usr/local/bin/nosetests3
 PROFILE
     return $?
 }
@@ -131,13 +128,13 @@ function docker_profile__user(){
     
     cat "$inputfile" >"$outputfile"
     cat >>"$outputfile" << PROFILE
-RUN useradd -d /service/tfclient -u ${HOST_UID} -U -s /usr/sbin/nologin ${HOST_USER}
-COPY files/entrypoint.sh /bin/entrypoint.sh
-RUN chmod +x /bin/entrypoint.sh
-RUN mkdir -p /etc/supervisor/conf.d /var/log/jupyter /var/log/supervisor /var/run
-COPY files/supervisor_jupyter /etc/supervisor/conf.d/jupyter.conf
-RUN sed -i "s:{{ *HOST_USER *}}:${HOST_USER}:g" /etc/supervisor/conf.d/jupyter.conf
-RUN chown -R ${HOST_UID}:${HOST_GID} /var/log/jupyter/. /var/run/. /var/log/supervisor/.
+FROM scratch as user-latest
+COPY --from=base . .
+RUN groupadd -r ${HOST_GROUP} -g ${HOST_GID} \\
+    && useradd -d /service/${HOST_USER} -m -r -l -N -s /usr/sbin/nologin \\
+        -u ${HOST_UID} -g ${HOST_GID} ${HOST_USER} \\
+    && sed -i "s:{{ *HOST_USER *}}:${HOST_USER}:g" /etc/supervisor/conf.d/jupyter.conf \\
+    && chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/.
 PROFILE
     return $?
 }
@@ -155,7 +152,7 @@ function create_dockerfile_local(){
     [[ ! -d "$builddir" ]] && _err "create_dockerfile_local(): builddir does not exist: ${builddir}"
 
     dockerfile="${PROJECT_ROOT}/Dockerfile"
-    dockerfile_target="${builddir}/Dockerfile.${profile_tag}"
+    dockerfile_target="${builddir}/Dockerfile.${profile_tag}-${HOST_USER}"
 
     case "$profile_tag" in
         user)
@@ -184,7 +181,7 @@ function create_compose_local(){
     
     [[ -s "$PROJECT_ROOT/.git/config" ]] || _err "Expected a GIT directory: ${PROJECT_ROOT}"
     
-    composefile="${builddir}/docker-compose.${profile_tag}.json"
+    composefile="${builddir}/docker-compose.${profile_tag}-${HOST_USER}.json"
     create_compose_minimal "$composefile" || _err "p__generate_docker(): cant create composefile: ${composefile}"
     
     datadir="$HOME/.tensorframe"
@@ -196,11 +193,11 @@ function create_compose_local(){
         |jq '
             .services.tfclient.user = "'"$HOST_UID:$HOST_GID"'" |
             .services.tfclient.image = "'"${HOST_USER}"'/tensorframe_tfclient:'"$profile_tag"'-latest" |
-            .services.tfclient.build.dockerfile = "build/Dockerfile.'$profile_tag'" |
+            .services.tfclient.build.dockerfile = "build/Dockerfile.'${profile_tag}-${HOST_USER}'" |
             .services.tfclient.build.context = "../" |
             .services.tfclient.build.target = "'$profile_tag'-latest" |
-            .services.tfclient.environment[.services.tfclient.environment| length] |= . + "DEVELOPER_MODE=1" |
-            .services.tfclient.volumes = [{"type": "bind", "source": "'"$datadir"'", "target": "/service/tfclient"}] |
+            .services.tfclient.volumes = [
+                {"type": "bind", "source": "'"$datadir"'", "target": "/service/'"${HOST_USER}"'"}] |
             .services.tfclient.ports = ["8888:8888"]
         ' >"${composefile}.tmp" && mv "${composefile}.tmp" "$composefile"
 
@@ -208,7 +205,8 @@ function create_compose_local(){
         python3 -c 'import sys, json; json.dump(json.load(sys.stdin), sys.stdout, indent=4)' < "${composefile}" \
             |jq '
                 .services.tfclient.runtime = "'"$DOCKER_RUNTIME"'" |
-                .services.tfclient.environment[.services.tfclient.environment| length] |= . + "DOCKER_RUNTIME='"${DOCKER_RUNTIME}"'"
+                .services.tfclient.environment[.services.tfclient.environment| length] |= .
+                    + "DOCKER_RUNTIME='"${DOCKER_RUNTIME}"'"
             ' >"${composefile}.tmp" && mv "${composefile}.tmp" "$composefile"
     else
         python3 -c 'import sys, json; json.dump(json.load(sys.stdin), sys.stdout, indent=4)' < "${composefile}" \
@@ -221,8 +219,10 @@ function create_compose_local(){
         developer)
             python3 -c 'import sys, json; json.dump(json.load(sys.stdin), sys.stdout, indent=4)' < "$composefile" \
                 |jq '
-                    .services.tfclient.volumes[.services.tfclient.volumes| length] |= . + 
-                        {"type": "bind", "source": "'"$PROJECT_ROOT"'", "target": "/git/tensorframe"}
+                    .services.tfclient.environment[.services.tfclient.environment| length] |= .
+                        + "DEVELOPER_MODE=1" |
+                    .services.tfclient.volumes[.services.tfclient.volumes| length] |= .
+                        + {"type": "bind", "source": "'"$PROJECT_ROOT"'", "target": "/git/tensorframe"}
                 ' >"${composefile}.tmp" && mv "${composefile}.tmp" "$composefile"
             ;; 
         *)  ;;
@@ -240,11 +240,11 @@ function p__build_container(){
     cd "$PROJECT_ROOT" || _err "Cant cd into: ${PROJECT_ROOT}"
     [[ ! -d "./build" ]] && _err "No builddir found in project_root: ${PROJECT_ROOT}"
 
-    composefile="./build/docker-compose.${profile_tag}.json"
-    [[ ! -s "$composefile" ]] && _err "p__build_container(): missing composefile: ${composefile}"
+    composefile="./build/docker-compose.${profile_tag}-${HOST_USER}.json"
+    [[ ! -s "$composefile" ]] && _err "p__build_container(): missing composefile: ${composefile}-${HOST_USER}"
 
-    dockerfile="./build/Dockerfile.${profile_tag}"
-    [[ ! -s "$dockerfile" ]] && _err "p__build_container(): missing Dockerfile: ${dockerfile}"
+    dockerfile="./build/Dockerfile.${profile_tag}-${HOST_USER}"
+    [[ ! -s "$dockerfile" ]] && _err "p__build_container(): missing Dockerfile: ${dockerfile}-${HOST_USER}"
 
     docker-compose -f "$composefile" up -d --build
     [[ ! "$?" -eq 0 ]] && _err "p__build_container(): docker-compose failed for: ${composefile}"
