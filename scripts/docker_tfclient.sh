@@ -110,7 +110,7 @@ RUN apt-get update --fix-missing \\
         sudo \\
         vim 
 RUN chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/. /service/${HOST_USER}/. \\
-    && umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER} \\
+    && (umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER}) \\
     && python3 -m pip install nose && ln -sf nosetests /usr/local/bin/nosetests3
 PROFILE
     return $?
