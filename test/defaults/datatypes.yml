@@ -1,37 +1,48 @@
 ---
 datatypes:
   int8:
-    min_value: 0
-    max_value: 127
+    byte_size:  1
+    min_value:  0
+    max_value:  127
   int16:
-    min_value: 0
-    max_value: 32767
+    byte_size:  2
+    min_value:  0
+    max_value:  32767
   int32:
-    min_value: 0
-    max_value: 2147483647
+    byte_size:  4
+    min_value:  0
+    max_value:  2147483647
   int64:
-    min_value: 0
-    max_value: 9223372036854775807
+    byte_size:  8
+    min_value:  0
+    max_value:  9223372036854775807
   uint8:
-    min_value: 0
-    max_value: 255
+    byte_size:  1
+    min_value:  0
+    max_value:  255
   uint16:
-    min_value: 0
-    max_value: 65535
+    byte_size:  2
+    min_value:  0
+    max_value:  65535
   uint32:
-    min_value: 0
-    max_value: 4294967295
+    byte_size:  4
+    min_value:  0
+    max_value:  4294967295
   uint64:
-    min_value: 0
-    max_value: 18446744073709551615
+    byte_size:  8
+    min_value:  0
+    max_value:  18446744073709551615
 #NOTE: min, max values for floating point not yet supported/ ignored
   float16:
-    min_value: 0
-    max_value: 0
+    byte_size:  2
+    min_value:  0
+    max_value:  0
   float32:
-    min_value: 0
-    max_value: 0
+    byte_size:  4
+    min_value:  0
+    max_value:  0
   float64:
-    min_value: 0
-    max_value: 0
+    byte_size:  8
+    min_value:  0
+    max_value:  0
 ...

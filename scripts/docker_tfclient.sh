@@ -100,7 +100,7 @@ ENV CUDA_VERSION 10.0.130
 ENV CUDA_PKG_VERSION 10-0=\$CUDA_VERSION-1
 COPY --from=user-latest . .
 RUN apt-get update --fix-missing \\
-    && apt-get -y install \\
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install \\
         build-essential \\
         cuda-minimal-build-\$CUDA_PKG_VERSION \\
         cuda-cublas-dev-\$CUDA_PKG_VERSION \\
@@ -108,8 +108,9 @@ RUN apt-get update --fix-missing \\
         python3-pip \\
         git \\
         sudo \\
+        pylint3 \\
         vim 
-RUN chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/. /service/${HOST_USER}/. \\
+RUN chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/. /service/${HOST_USER}/. /var/run/nvidia-persistenced/. \\
     && (umask 0227 && echo "%${HOST_USER}  ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${HOST_USER}) \\
     && python3 -m pip install nose && ln -sf nosetests /usr/local/bin/nosetests3
 PROFILE
@@ -134,7 +135,7 @@ RUN groupadd -r ${HOST_GROUP} -g ${HOST_GID} \\
     && useradd -d /service/${HOST_USER} -m -r -l -N -s /usr/sbin/nologin \\
         -u ${HOST_UID} -g ${HOST_GID} ${HOST_USER} \\
     && sed -i "s:{{ *HOST_USER *}}:${HOST_USER}:g" /etc/supervisor/conf.d/jupyter.conf \\
-    && chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/.
+    && chown -R ${HOST_USER}:${HOST_USER} /var/run/supervisor/. /var/run/nvidia-persistenced/.
 PROFILE
     return $?
 }

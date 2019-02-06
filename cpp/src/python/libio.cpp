@@ -207,8 +207,10 @@ PyObject* pyobj__write_csv(PyObject* self, PyObject* args){
     }
     no_rows = (uint64_t) PyLong_AsLong(pyobj);
 
-    // Extract datatypes
-    if(!(pyobj = PyDict_GetItemString(input_frame, "datatypes"))
+    // Extract columns.datatypes
+    if(!(pyobj = PyDict_GetItemString(input_frame, "columns"))
+        || PyDict_Check(pyobj) != true
+        || !(pyobj = PyDict_GetItemString(pyobj, "datatypes"))
         || PyList_Check(pyobj) != true
         || (uint64_t) PyList_Size(pyobj) != no_columns
     ){
@@ -470,19 +472,21 @@ PyObject* pyobj__generate_arrays(PyObject* self, PyObject* args){
 
 
         // Retrieve max_value
-        if(!(dict_item = PyDict_GetItemString(list_item, "max_value"))
-            || PyLong_Check(dict_item) != true
-            || sizeof(PyLong_AsLong(dict_item)) != sizeof(uint64_t)
-        ){
-            PyErr_SetString(
-                PyExc_ValueError,
-                ("pyobj__generate_arrays(). Error parsing max_value, list_no: " + std::to_string(ii)).c_str()
-            );
-            free(columns);
-            free(columns_meta);
-            return(NULL);
-        }
-        max_value = (uint64_t) PyLong_AsLong(dict_item);
+        // NOTE: TEMPORARILY DISABLED DUE TO SEGFAULT ERRORS WHEN UNSIGNED 64B
+        // LIKELY FIX BY PROPERLY SEPARATING SIGNED FROM UNSIGNED LONG LONGS
+        //if(!(dict_item = PyDict_GetItemString(list_item, "max_value"))
+        //    || PyLong_Check(dict_item) != true
+        //    || sizeof(PyLong_AsLong(dict_item)) != sizeof(uint64_t)
+        //){
+        //    PyErr_SetString(
+        //        PyExc_ValueError,
+        //        ("pyobj__generate_arrays(). Error parsing max_value, list_no: " + std::to_string(ii)).c_str()
+        //    );
+        //    free(columns);
+        //    free(columns_meta);
+        //    return(NULL);
+        //}
+        max_value = 0;
 
         // Write to column_meta struct
         columns_meta[ii].datatype = datatype;
@@ -503,7 +507,7 @@ PyObject* pyobj__generate_arrays(PyObject* self, PyObject* args){
         // End of NA
         data_offset = data_offset + ((no_rows / 32) * 4) + (8 - (((no_rows / 32) * 4) % 8));
     }
-    
+   
     dest = (void*) PyCapsule_GetPointer(input_memory_ptr, "hostmemory_ptr");
 
     cu__generate_arrays(columns_meta, dest, (uint64_t) no_columns, no_rows);    //, )stride_dest, no_columns, no_items);
@@ -561,6 +565,7 @@ void cpp__new_arraylist(void *data, PyObject **list_ptr, uint64_t no_columns, ui
 
         column_size = TF_TYPES[_datatype_column_nobyid(columns[j_col])].size;
         strides[0] = column_size;
+
         result_col = PyArray_NewFromDescr(&PyArray_Type, descr, 1, dimension, strides, ((char*) data + data_offset), 0, NULL);
 
         offset_round = (8 - ((column_size * no_rows) % 8));

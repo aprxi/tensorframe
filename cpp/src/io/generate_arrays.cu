@@ -24,7 +24,7 @@ void generate_uint32(curandGenerator_t gen, void *dest, size_t num){
 
 void generate_uint64(curandGenerator_t gen, void *dest, size_t num){
     uint32_cu *dst_ptr = (uint32_cu*) dest;
-    curandGenerate(gen,dst_ptr, num);
+    curandGenerate(gen, dst_ptr, num);
     // NOTE: we dont use the 64bit version below yet as it requires a 32bit generator.
     // while the latter can be easily fixed in code, performance appears less from early testing.
     // current hack is to simply write double the number of items to get sufficient random bits.
@@ -89,6 +89,7 @@ void cu__generate_arrays(
         column_table[ii].function_id = TF_TYPES_CUDA[jj].function_id;
         column_table[ii].size = TF_TYPES_CUDA[jj].size;
     }
+
 
     // create pseudo-random number generator 32 bits
     curandGenerator_t gen32;

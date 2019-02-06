@@ -120,6 +120,9 @@ def load_testruns(filename):
             raise ValueError('_update_testrun() columns configuration incorrect')
        
         column_list_ret = []
+
+        row_bytes = 0
+
         for column_group in column_list:
             datatype = column_group.get('datatype')
             columns_no = column_group.get('columns_no')
@@ -129,11 +132,13 @@ def load_testruns(filename):
 
             # Verify datatype configuration
             assert(isinstance(datatype_config, dict))
-            for required_int_value in ['min_value', 'max_value']:
+            for required_int_value in ['byte_size', 'min_value', 'max_value']:
                 assert(isinstance(datatype_config.get(required_int_value), int))
 
             if not isinstance(columns_no, int):
                 columns_no = default_columns_no 
+
+            row_bytes += (int(datatype_config['byte_size']) * columns_no)
 
             column_list_ret = column_list_ret + [{
                     'name': 'col_' + str(column_id),
@@ -143,8 +148,16 @@ def load_testruns(filename):
                 } for column_id in range(len(column_list_ret), len(column_list_ret) + columns_no)
             ]
                            
+        column_null_bytes = ((default_rows_no / 32) * 4) + (8 - (((default_rows_no / 32 ) * 4) % 8))
 
-        return {'name': tr_name, 'columns': column_list_ret, 'rows_no': default_rows_no}
+        return {
+            'name':         str(tr_name),
+            'columns':      list(column_list_ret),
+            'rows_no':      int(default_rows_no),
+            'row_bytes':    int(row_bytes),
+            'null_bytes':   int(column_null_bytes *  column_list_ret.__len__()),
+            'total_bytes':  int(row_bytes * default_rows_no + column_null_bytes * column_list_ret.__len__()),
+        }
 
     runs = [
         _update_testrun(testrun)

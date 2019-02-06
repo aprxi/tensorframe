@@ -21,4 +21,4 @@ RUN apt-get -y install python3-pip \
 COPY files/entrypoint.sh /bin/entrypoint.sh
 COPY files/supervisor_jupyter /etc/supervisor/conf.d/jupyter.conf
 RUN chmod +x /bin/entrypoint.sh \
-    && mkdir -p /service /etc/supervisor/conf.d /var/run/supervisor
+    && mkdir -p /service /etc/supervisor/conf.d /var/run/supervisor /var/run/nvidia-persistenced

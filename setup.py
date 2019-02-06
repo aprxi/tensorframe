@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="tensorframe",
-    version="0.80.6",
+    version="0.80.7",
     author="Anthony Potappel",
     author_email="anthony.potappel@gmail.com",
     description="Post alpha build",

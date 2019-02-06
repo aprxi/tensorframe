@@ -17,7 +17,7 @@ build_cpplibs(){
   git submodule update --recursive
   _exec "make -C ./cpp libio"
   _exec "make -C ./cpp libbinops"
-  #_exec "cp cpp/build/*.so tensorframe/core/libs/"
+  _exec "cp cpp/build/*.so tensorframe/core/libs/"
 }
 
 build_tensorframe(){

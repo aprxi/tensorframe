@@ -15,6 +15,7 @@ if [ ! -d "${HOME}/notebooks" ];then
     mkdir -p "${HOME}/notebooks"
 fi
 
+[ -x /usr/bin/nvidia-persistenced ] && /usr/bin/nvidia-persistenced
 service supervisor start
 
 exit 0
