@@ -24,7 +24,7 @@ def main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    if args.file != None:
+    if args.file is not None:
         if not os.path.isfile(args.file):
             sys.exit(progname + ': cant read file \"' + args.file + '\".')
 

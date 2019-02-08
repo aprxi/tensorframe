@@ -20,7 +20,8 @@ def array_sum(tensorframe_meta, processor='CPU'):
         printf.warning('SUM FEATURE NOT YET CONSIDERED COMPLETE')
         printf.warning('TO FIX:\n1. SUMS > UINT64.\n2. SUMS OF FLOAT TYPES STILL DONE IN INT.')
         # note on latter: either overflow like numpy, or implement INT128 on CUDA)
-        return (keyname, pyc_binops.libbinops.array_sum(tensorframe_meta))
+
+        return (keyname, pyc_binops.array_sum(tensorframe_meta))
     if processor == 'CPU':
         return (keyname, numpy_ops.array_sum(tensorframe_meta))
     raise ValueError('processor must either GPU or CPU')
